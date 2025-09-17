@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Search Parking Lots | Parking App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    body { background: #f7fbff; }
+    .main-wrap {
+      max-width: 90vw; 
+      margin: 0 auto; 
+      padding-bottom: 18px;
+    }
+    h2 {
+      font-size: 2rem; font-weight: 700; letter-spacing: 0.8px; margin: 34px 0 12px 0;
+    }
+    .search-bar { max-width: 350px; min-width: 190px; }
+    .search-section {
+      background: #fff; border-radius: 16px; box-shadow: 0 2px 12px #b9d0e825; 
+      padding: 24px 16px 12px 16px; margin-bottom: 20px;
+    }
+    .table th,.table td { vertical-align: middle !important; font-size: 1.15em; }
+    .lotname { font-weight: 600; color: #1661a0; font-size:1.15em; }
+    .badge { font-size: 1em; }
+    .no-results {
+      background: #fffbe8; border-radius: 10px; padding: 24px 10px; color: #996b14; font-size: 1.1em;
+    }
+    @media (max-width: 768px) {
+      .main-wrap { max-width: 99vw; }
+      h2 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-wrap">
+    <h2 class="text-primary">
+      <i class="bi bi-search"></i>
+      {% if search_term %}
+        Search Results <span class="fs-6 text-dark">for "{{ search_term }}"</span>
+      {% else %}
+        All Parking Lots
+      {% endif %}
+    </h2>
+
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+      <a href="{{ url_for('user.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+      <form method="post" action="{{ url_for('user.search') }}" class="d-flex gap-2 justify-content-end flex-grow-1">
+        <input class="form-control search-bar" type="text" name="location"
+               placeholder="Search by city, area or address..."
+               value="{{ search_term or '' }}" required>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+      </form>
+    </div>
+
+    <div class="search-section">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle mb-0">
+          <thead class="table-success">
+            <tr style="font-size:1.13em;">
+              <th>Lot Name</th>
+              <th>Address</th>
+              <th>Available</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% if lots %}
+            {% for lot in lots %}
+              {% set available = lot.spots | selectattr('status', 'equalto', 'A') | list | length %}
+              <tr>
+                <td class="lotname"><i class="bi bi-pin-map"></i> {{ lot.prime_location_name }}</td>
+                <td>{{ lot.address }}</td>
+                <td>
+                  {% if available > 0 %}
+                    <span class="badge bg-success px-3">
+                      <i class="bi bi-check2-circle"></i> {{ available }}/{{ lot.maximum_number_of_spots }}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Full</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not active_res and available > 0 %}
+                    <!-- Show modal to enter vehicle number before reserving -->
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bookingModal{{ lot.id }}">
+                      <i class="bi bi-plus-circle"></i> Reserve
+                    </button>
+                    <!-- Booking Modal -->
+                    <div class="modal fade" id="bookingModal{{ lot.id }}" tabindex="-1" aria-labelledby="bookingModalLabel{{ lot.id }}" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <form method="post" action="{{ url_for('user.reserve_spot', lot_id=lot.id) }}">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="bookingModalLabel{{ lot.id }}">Enter Vehicle Number</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                              <div class="mb-3">
+                                <label class="form-label">Vehicle Number</label>
+                                <input type="text" name="vehicle_number" class="form-control" required pattern="[A-Za-z0-9 -]{6,}">
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="submit" class="btn btn-success">Book Spot</button>
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled>
+                      <i class="bi bi-dash-circle"></i> Reserve
+                    </button>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4">
+                <div class="no-results text-center">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {% if search_term %}
+                    No lots found for "{{ search_term }}"
+                  {% else %}
+                    No parking lots found.
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS for modal support -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

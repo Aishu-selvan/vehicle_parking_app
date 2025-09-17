@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard | Vehicle Parking App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body { background: #eceff1; }
+    .side { border-radius:15px; background: #fff; }
+    .main { border-radius:15px; background: #f6f8fa; }
+    .dash-title { letter-spacing:1px; }
+    .stat-card { border-radius: 12px; min-height: 120px; }
+    .stat-num { font-size: 2rem; font-weight: 600; }
+    .stat-label { font-size: 1.05rem; }
+    .icon-card { font-size: 2.1rem; opacity:0.77 }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-3">
+    <div class="container">
+      <a class="navbar-brand" href="#"><i class="bi bi-car-front-fill"></i> Parking Admin</a>
+      <div class="d-flex">
+        <span class="navbar-text me-3"> Welcome, Admin! </span>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-light btn-sm">Logout</a>
+      </div>
+    </div>
+  </nav>
+  <div class="container py-3">
+    <div class="row g-4">
+      <!-- SIDEBAR -->
+      <div class="col-md-3">
+        <div class="p-4 side shadow">
+          <h6 class="fw-bold text-primary">Admin Menu</h6>
+          <ul class="nav flex-column mb-3">
+            <li class="nav-item mb-2"><a class="nav-link px-0" href="{{ url_for('admin.lots_panel') }}"><i class="bi bi-kanban-fill"></i> Lot Panel</a></li>
+            <li class="nav-item mb-2"><a class="nav-link px-0" href="{{ url_for('admin.lot_add') }}"><i class="bi bi-plus-circle"></i> Add Lot</a></li>
+            <li class="nav-item mb-2"><a class="nav-link px-0" href="{{ url_for('admin.users_list') }}"><i class="bi bi-people"></i> Users</a></li>
+            <li class="nav-item mb-2"><a class="nav-link px-0" href="{{ url_for('admin.parking_records') }}"><i class="bi bi-bar-chart"></i> Parking Summary</a></li>
+            <li class="nav-item mb-2"><a class="nav-link px-0" href="{{ url_for('admin.summary') }}"><i class="bi bi-bar-chart"></i> Statistical Summary</a></li>
+          </ul>
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">Dashboard</a>
+        </div>
+      </div>
+      <!-- MAIN PANEL -->
+      <div class="col-md-9">
+        <div class="p-4 main shadow">
+          <h3 class="dash-title mb-4"><i class="bi bi-kanban-fill text-primary"></i> Admin Dashboard</h3>
+
+          <!-- STATS SUMMARY ROW -->
+          <div class="row mb-4">
+            <div class="col-md-3 col-6 mb-3">
+              <div class="stat-card card border-success bg-white text-center">
+                <div class="card-body">
+                  <div class="icon-card text-success mb-1"><i class="bi bi-map"></i></div>
+                  <div class="stat-num text-success">{{ total_lots }}</div>
+                  <div class="stat-label">Total Lots</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <div class="stat-card card border-info bg-white text-center">
+                <div class="card-body">
+                  <div class="icon-card text-info mb-1"><i class="bi bi-people"></i></div>
+                  <div class="stat-num text-info">{{ total_users }}</div>
+                  <div class="stat-label">Active Users</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <div class="stat-card card border-primary bg-white text-center">
+                <div class="card-body">
+                  <div class="icon-card text-primary mb-1"><i class="bi bi-square"></i></div>
+                  <div class="stat-num text-primary">{{ total_spots }}</div>
+                  <div class="stat-label">Total Spots</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <div class="stat-card card border-warning bg-white text-center">
+                <div class="card-body">
+                  <div class="icon-card text-warning mb-1"><i class="bi bi-clock-history"></i></div>
+                  <div class="stat-num text-warning">{{ total_reservations }}</div>
+                  <div class="stat-label">Total Bookings</div>
+                </div>
+              </div>
+            </div>
+            
+
+          {% with messages = get_flashed_messages() %}
+            {% if messages %}
+              <div class="alert alert-info">{% for msg in messages %}
+                <div>{{ msg }}</div>
+              {% endfor %}</div>
+            {% endif %}
+          {% endwith %}
+
+          <div class="mb-4 d-flex justify-content-between align-items-center">
+            <h5>Parking Lots</h5>
+            <a href="{{ url_for('admin.lot_add') }}" class="btn btn-success btn-sm"><i class="bi bi-plus"></i> Add Lot</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle bg-white shadow-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Address</th>
+                  <th>Pincode</th>
+                  <th>Price/hr</th>
+                  <th>Spots</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for lot in lots %}
+                <tr>
+                  <td>{{ lot.prime_location_name }}</td>
+                  <td>{{ lot.address }}</td>
+                  <td>{{ lot.pin_code }}</td>
+                  <td>₹{{ lot.price }}</td>
+                  <td>{{ lot.spots|length }}</td>
+                  <td>
+                    <a href="{{ url_for('admin.lot_edit', lot_id=lot.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                    {% set all_available = (lot.spots | selectattr('status', 'equalto', 'A') | list | length) == (lot.spots|length) %}
+                    {% if all_available %}
+                      <form method="post" action="{{ url_for('admin.lot_delete', lot_id=lot.id) }}" style="display:inline;">
+                        <button class="btn btn-danger btn-sm" type="submit"><i class="bi bi-trash"></i> Delete Lot</button>
+                      </form>
+                    {% else %}
+                      <span class="badge bg-secondary">Cannot delete lot spots reserved</span>
+                    {% endif %}
+                    <a href="{{ url_for('admin.lot_detail', lot_id=lot.id) }}" class="btn btn-sm btn-info">Details</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted">No parking lots found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-4">
+            <a href="{{ url_for('admin.users_list') }}" class="btn btn-primary"><i class="bi bi-people"></i> See All Users</a>
+            <a href="{{ url_for('admin.parking_records') }}" class="btn btn-info ms-2"><i class="bi bi-bar-chart"></i> Parking Records</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Dashboard | Vehicle Parking App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body { background: #f5fafd; }
+    .dashboard-box { border-radius: 16px; background: #fff; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px #c9d3db22; }
+    .active-spot { background: #fff8e1; border-left: 6px solid #ffc107; }
+    .nav-link.active, .nav-link:focus { font-weight: 600; color: #198754 !important; background: #edf9f1; }
+    .navbar, .btnbar { box-shadow: 0 2px 8px #9991; }
+    .lot-status-badge { font-size: 1em; }
+    .search-bar { max-width: 420px; }
+    .btnbar .nav-link { color: #222; font-weight: 500; }
+    .btnbar { background: #fff; margin-bottom: 22px; border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <!-- Top NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-success bg-success mb-0">
+    <div class="container">
+      <a class="navbar-brand text-white fw-bold" href="{{ url_for('user.dashboard') }}">
+        <i class="bi bi-car-front-fill"></i> My Parking
+      </a>
+      <span class="navbar-text text-white">Hi, {{ current_user.full_name }} | 
+        <a href="{{ url_for('auth.logout') }}" class="text-white text-decoration-underline">Logout</a>
+      </span>
+    </div>
+  </nav>
+
+  <!-- BUTTON NAVIGATION BAR (immediately below green navbar) -->
+  <ul class="nav nav-tabs justify-content-center btnbar py-1">
+    <li class="nav-item">
+      <a class="nav-link {% if request.endpoint == 'user.dashboard' %}active{% endif %}"
+        href="{{ url_for('user.dashboard') }}">
+        <i class="bi bi-house-door"></i> Dashboard
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if request.endpoint == 'user.history' %}active{% endif %}"
+        href="{{ url_for('user.history') }}">
+        <i class="bi bi-clock-history"></i> History
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if request.endpoint == 'user.search' %}active{% endif %}"
+        href="{{ url_for('user.search') }}">
+        <i class="bi bi-search"></i> Search
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if request.endpoint == 'user.edit_profile' %}active{% endif %}"
+        href="{{ url_for('user.edit_profile') }}">
+        <i class="bi bi-person"></i> Edit Profile
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if request.endpoint == 'user.summary' %}active{% endif %}"
+        href="{{ url_for('user.summary') }}">
+        <i class="bi bi-bar-chart"></i> Summary
+      </a>
+    </li>
+    {% if active_res %}
+    <li class="nav-item">
+      <a class="nav-link text-warning {% if request.endpoint == 'user.release_page' %}active{% endif %}" 
+        href="{{ url_for('user.release_page') }}">
+        <i class="bi bi-x-circle"></i> Release
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+
+  <!-- PAGE CONTENT BELOW BUTTON NAVBAR -->
+  <div class="container pb-4">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="alert alert-info">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- ACTIVE RESERVATION BANNER -->
+    {% if active_res %}
+      <div class="alert alert-warning active-spot mb-4 px-4">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h6 class="mb-1 text-primary"><i class="bi bi-p-circle-fill"></i> Active Reservation</h6>
+            <div>
+              <b>Lot:</b> {{ active_res.spot.lot.prime_location_name if active_res.spot and active_res.spot.lot else "" }}
+              (ID: {{ active_res.spot.lot_id if active_res.spot else "" }}),
+              <b>Spot:</b> #{{ active_res.spot.id if active_res.spot else "" }}
+            </div>
+            <div>
+              <b>Vehicle Number:</b> {{ active_res.vehicle_number or '-' }}
+            </div>
+            <div>
+              <b>Parked at:</b>
+              {{ active_res.parking_timestamp.strftime("%Y-%m-%d %H:%M") if active_res.parking_timestamp else "--" }}
+            </div>
+          </div>
+          <div class="col-md-4 text-end">
+            <a href="{{ url_for('user.release_page') }}" class="btn btn-danger mt-2">
+              <i class="bi bi-x-circle"></i> Release Spot
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- SEARCH BAR -->
+    <div class="d-flex justify-content-end mb-3">
+      <form method="post" action="{{ url_for('user.search') }}" class="d-inline-flex gap-2">
+        <input class="form-control search-bar" type="text" name="location" placeholder="Search by location or area..." required>
+        <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i> Search</button>
+      </form>
+    </div>
+
+    <!-- PARKING LOTS TABLE -->
+    <div class="dashboard-box p-5 mb-4">
+      <h4 class="mb-3 text-success"><i class="bi bi-speedometer2"></i> Available Parking Lots</h4>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle bg-white">
+          <thead class="table-success">
+            <tr>
+              <th>Name</th>
+              <th>Address</th>
+              <th>Spots Available</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lot in lots %}
+              {% set available = lot.spots | selectattr('status', 'equalto', 'A') | list | length %}
+              <tr>
+                <td>{{ lot.prime_location_name }}</td>
+                <td>{{ lot.address }}</td>
+                <td>
+                  {% if available > 0 %}
+                    <span class="badge bg-success lot-status-badge">{{ available }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary lot-status-badge">0</span>
+                  {% endif %}
+                  / {{ lot.spots|length }}
+                </td>
+                <td>
+                  {% if not active_res and available > 0 %}
+                    <!-- Show modal to enter vehicle number before reserving -->
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bookingModal{{ lot.id }}">
+                      <i class="bi bi-plus-circle"></i> Reserve
+                    </button>
+                    <!-- Booking Modal -->
+                    <div class="modal fade" id="bookingModal{{ lot.id }}" tabindex="-1" aria-labelledby="bookingModalLabel{{ lot.id }}" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <form method="post" action="{{ url_for('user.reserve_spot', lot_id=lot.id) }}">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="bookingModalLabel{{ lot.id }}">Enter Vehicle Number</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                              <div class="mb-3">
+                                <label class="form-label">Vehicle Number</label>
+                                <input type="text" name="vehicle_number" class="form-control" required pattern="[A-Za-z0-9 -]{6,}">
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="submit" class="btn btn-success">Book Spot</button>
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled>Reserve</button>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('user.lot_detail', lot_id=lot.id) }}" class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-info-circle"></i> Details
+                  </a>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted">No parking lots found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="text-end mt-2">
+        <a href="{{ url_for('user.history') }}" class="btn btn-outline-dark"><i class="bi bi-clock-history"></i> View Parking History</a>
+      </div>
+    </div>
+
+    <div class="text-center pt-2 text-muted fs-6">
+      {% if not active_res %}
+        <i class="bi bi-info-circle"></i>
+        <span>Select a lot above and reserve a spot. Only one active reservation at a time.</span>
+      {% endif %}
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
