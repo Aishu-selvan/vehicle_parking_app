@@ -25,7 +25,6 @@ A simple full-stack web application to manage vehicle parking reservations, lots
 ## How to Run
 
 1. Clone the repository:
-```bash
 git clone <your-repo-url>
 cd vehicle-parking-app
 
