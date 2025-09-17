@@ -30,9 +30,9 @@ cd vehicle-parking-app
 
 2. Create a virtual environment (optional but recommended)
 python -m venv venv
-# Activate on Windows
+### Activate on Windows
 venv\Scripts\activate
-# Activate on macOS/Linux
+### Activate on macOS/Linux
 source venv/bin/activate
 
 3. Install dependencies:
